@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import messagebox
 import pyperclip
 import random
+import json
 
 # Password Generator
 
@@ -29,7 +30,30 @@ def generate_password():
     psw_entry.insert(0, password)
     pyperclip.copy(password)
 
+
+def find_password():
+    website = website_entry.get()
+
+    try:
+        with open("data.json", "r") as data_file:
+            data = json.load(data_file)
+    except FileNotFoundError:
+        messagebox.showinfo(title="Hiba", message="Adatfájl nem található!")
+    else:
+        if website in data:
+            email = data[website]["email"]
+            password = data[website]["password"]
+            messagebox.showinfo(title=website, message=f"Email: {email}\nPassword: {password}")
+        else:
+            messagebox.showinfo(title="Hiba", message="A keresett weboldalhoz még nem tartozik email és jelszó!")
+
+
 # Password Manager
+
+
+def create_file(data):
+    with open("data.json", "w") as data_file:
+        json.dump(data, data_file, indent=4)
 
 
 def save_datas():
@@ -37,17 +61,28 @@ def save_datas():
     website = website_entry.get()
     email = email_entry.get()
     password = psw_entry.get()
+    new_data = {
+        website: {
+            "email": email,
+            "password": password
+        }
+    }
 
     if len(website) == 0 or len(password) == 0:
         messagebox.showinfo(title="Üres mezők", message="Kérem töltse ki az üres mezőket!")
     else:
-        is_ok = messagebox.askokcancel(title="Helyesek az adatok?", message=f"A megadott adatok:\nWeboldal: {website}\nEmail: {email}\nJelszó: {password}\n\nMegfelelőek az adatok?")
+        try:
+            with open("data.json", "r") as data_file:
+                data = json.load(data_file)
+        except FileNotFoundError:
+            create_file(new_data)
+        else:
+            data.update(new_data)
+            create_file(data)
 
-        if is_ok:
-            with open("data.text", "a") as data_file:
-                data_file.write(f"{website} | {email} | {password}\n")
-                website_entry.delete(0, END)
-                psw_entry.delete(0, END)
+        finally:
+            website_entry.delete(0, END)
+            psw_entry.delete(0, END)
 
 
 window = Tk()
@@ -71,7 +106,7 @@ psw_label = Label(text="Jelszó:")
 psw_label.grid(row=3, column=0, sticky="e")
 
 # Entries
-website_entry = Entry(width=55)
+website_entry = Entry(width=34)
 website_entry.grid(row=1, column=1, columnspan=2, sticky="w")
 website_entry.focus()
 
@@ -79,10 +114,12 @@ email_entry = Entry(width=55)
 email_entry.grid(row=2, column=1, columnspan=2, sticky="w")
 email_entry.insert(0, "takacs.barbara97@gmail.com")
 
-psw_entry = Entry(width=30)
+psw_entry = Entry(width=34)
 psw_entry.grid(row=3, column=1, columnspan=2, sticky="w")
 
 # Buttons
+search_btn = Button(text="Keresés", width=15, command=find_password)
+search_btn.grid(row=1, column=2, sticky="e")
 generate_btn = Button(text="Jelszó generálás", width=15, command=generate_password)
 generate_btn.grid(row=3, column=2, sticky="e")
 
